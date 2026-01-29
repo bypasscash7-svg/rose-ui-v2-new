@@ -2015,23 +2015,27 @@ function Library:CreateWindow(options)
 		-- Config System (library-managed)
 		local configFolder = opts.ConfigFolder or "RoseConfigs"
 		local function ensureFolder()
-			if isfolder and makefolder and not isfolder(configFolder) then
-				makefolder(configFolder)
-			end
+			pcall(function()
+				if isfolder and makefolder and not isfolder(configFolder) then
+					makefolder(configFolder)
+				end
+			end)
 		end
 		local function getConfigPath(name)
 			return configFolder .. "/" .. tostring(name) .. ".json"
 		end
 		local function listConfigs()
 			local out = {}
-			if isfolder and listfiles and isfolder(configFolder) then
-				for _, file in ipairs(listfiles(configFolder)) do
-					local n = tostring(file):gsub(configFolder .. "/", ""):gsub("%.json$", "")
-					if n ~= "" then
-						table.insert(out, n)
+			pcall(function()
+				if isfolder and listfiles and isfolder(configFolder) then
+					for _, file in ipairs(listfiles(configFolder)) do
+						local n = tostring(file):gsub(configFolder .. "/", ""):gsub("%.json$", "")
+						if n ~= "" then
+							table.insert(out, n)
+						end
 					end
 				end
-			end
+			end)
 			if #out == 0 then
 				table.insert(out, "No configs")
 			end
@@ -2051,22 +2055,27 @@ function Library:CreateWindow(options)
 		uiSection:AddButton({
 			Text = "Save Config",
 			Callback = function()
-				if not (writefile and HttpService) then
-					notify("Error", "File API not available")
-					return
-				end
-				ensureFolder()
-				local name = configName.Get and configName.Get() or "default"
-				if not name or tostring(name) == "" then
-					notify("Error", "Missing config name")
-					return
-				end
-				local data = HttpService:JSONEncode(Library:_encodeValue(Library.flags))
-				writefile(getConfigPath(name), data)
-				notify("Config Saved", "Saved '" .. tostring(name) .. "'")
-				local items = listConfigs()
-				if cfgDropdown.Refresh then
-					cfgDropdown.Refresh(items)
+				local success, err = pcall(function()
+					if not (writefile and HttpService) then
+						notify("Error", "File API not available")
+						return
+					end
+					ensureFolder()
+					local name = configName.Get and configName.Get() or "default"
+					if not name or tostring(name) == "" then
+						notify("Error", "Missing config name")
+						return
+					end
+					local data = HttpService:JSONEncode(Library:_encodeValue(Library.flags))
+					writefile(getConfigPath(name), data)
+					notify("Config Saved", "Saved '" .. tostring(name) .. "'")
+					local items = listConfigs()
+					if cfgDropdown.Refresh then
+						cfgDropdown.Refresh(items)
+					end
+				end)
+				if not success then
+					notify("Error", "Failed to save config")
 				end
 			end,
 		})
@@ -2074,56 +2083,62 @@ function Library:CreateWindow(options)
 		uiSection:AddButton({
 			Text = "Load Config",
 			Callback = function()
-				if not (readfile and isfile and HttpService) then
-					notify("Error", "File API not available")
-					return
-				end
-				local name = cfgDropdown.Get and cfgDropdown.Get() or ""
-				if not name or name == "No configs" then
-					return
-				end
-				local path = getConfigPath(name)
-				if not isfile(path) then
-					notify("Error", "Config not found")
-					return
-				end
-				local decoded = Library:_decodeValue(HttpService:JSONDecode(readfile(path)))
-				Library:ApplyFlags(decoded)
-				notify("Config Loaded", "Loaded '" .. tostring(name) .. "'")
+				pcall(function()
+					if not (readfile and isfile and HttpService) then
+						notify("Error", "File API not available")
+						return
+					end
+					local name = cfgDropdown.Get and cfgDropdown.Get() or ""
+					if not name or name == "No configs" then
+						return
+					end
+					local path = getConfigPath(name)
+					if not isfile(path) then
+						notify("Error", "Config not found")
+						return
+					end
+					local decoded = Library:_decodeValue(HttpService:JSONDecode(readfile(path)))
+					Library:ApplyFlags(decoded)
+					notify("Config Loaded", "Loaded '" .. tostring(name) .. "'")
+				end)
 			end,
 		})
 
 		uiSection:AddButton({
 			Text = "Delete Config",
 			Callback = function()
-				if not (delfile and isfile) then
-					notify("Error", "File API not available")
-					return
-				end
-				local name = cfgDropdown.Get and cfgDropdown.Get() or ""
-				if not name or name == "No configs" then
-					return
-				end
-				local path = getConfigPath(name)
-				if isfile(path) then
-					delfile(path)
-					notify("Config Deleted", "Deleted '" .. tostring(name) .. "'")
-				end
-				local items = listConfigs()
-				if cfgDropdown.Refresh then
-					cfgDropdown.Refresh(items)
-				end
+				pcall(function()
+					if not (delfile and isfile) then
+						notify("Error", "File API not available")
+						return
+					end
+					local name = cfgDropdown.Get and cfgDropdown.Get() or ""
+					if not name or name == "No configs" then
+						return
+					end
+					local path = getConfigPath(name)
+					if isfile(path) then
+						delfile(path)
+						notify("Config Deleted", "Deleted '" .. tostring(name) .. "'")
+					end
+					local items = listConfigs()
+					if cfgDropdown.Refresh then
+						cfgDropdown.Refresh(items)
+					end
+				end)
 			end,
 		})
 
 		uiSection:AddButton({
 			Text = "Refresh Configs",
 			Callback = function()
-				local items = listConfigs()
-				if cfgDropdown.Refresh then
-					cfgDropdown.Refresh(items)
-				end
-				notify("Refreshed", "Config list updated")
+				pcall(function()
+					local items = listConfigs()
+					if cfgDropdown.Refresh then
+						cfgDropdown.Refresh(items)
+					end
+					notify("Refreshed", "Config list updated")
+				end)
 			end,
 		})
 
