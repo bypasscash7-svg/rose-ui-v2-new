@@ -1950,19 +1950,20 @@ function Library:CreateWindow(options)
 
 	-- Built-in Default/Settings tab (optional)
 	function Window:EnableDefaultSettings(opts)
-		opts = opts or {}
-		local show = (opts.Enabled ~= false)
-		if not show then
-			return
-		end
-		if self._defaultSettingsEnabled then
-			return
-		end
-		self._defaultSettingsEnabled = true
+		local success, err = pcall(function()
+			opts = opts or {}
+			local show = (opts.Enabled ~= false)
+			if not show then
+				return
+			end
+			if self._defaultSettingsEnabled then
+				return
+			end
+			self._defaultSettingsEnabled = true
 
-		local hadActive = (self._activeTab ~= nil)
-		local settingsTabName = opts.TabName or "Settings"
-		local settingsTab = self:CreateTab(settingsTabName, 1000000)
+			local hadActive = (self._activeTab ~= nil)
+			local settingsTabName = opts.TabName or "Settings"
+			local settingsTab = self:CreateTab(settingsTabName, 1000000)
 
 		-- If Settings is created first, don't force it active.
 		if not hadActive then
@@ -2049,7 +2050,13 @@ function Library:CreateWindow(options)
 
 		uiSection:AddDivider({ Text = "Config System", Align = "Center" })
 		local configName = uiSection:AddTextBox({ Text = "Config Name", Placeholder = "Enter config name...", Default = "default" })
-		local cfgItems = listConfigs()
+		local cfgItems = {}
+		pcall(function()
+			cfgItems = listConfigs()
+		end)
+		if #cfgItems == 0 then
+			cfgItems = {"No configs"}
+		end
 		local cfgDropdown = uiSection:AddDropdown({ Text = "Config List", Items = cfgItems, Default = cfgItems[1] })
 
 		uiSection:AddButton({
@@ -2327,6 +2334,10 @@ function Library:CreateWindow(options)
 				end
 			end,
 		})
+		end)
+		if not success then
+			warn("[Rose UI] Failed to enable default settings:", err)
+		end
 	end
 
 	function Window:Destroy()
